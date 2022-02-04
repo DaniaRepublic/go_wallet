@@ -56,6 +56,7 @@ func router4Website(endpointsENV *endpoints.Env) http.Handler {
 		website.POST(updateURL, endpoints.POSTupdate)
 		website.GET(commitURL, endpoints.GETcommit)
 		website.POST(commitURL, endpoints.POSTcommit)
+		website.GET(statsURL, endpoints.GETstats)
 	}
 
 	return router

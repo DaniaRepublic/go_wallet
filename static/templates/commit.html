@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Update Passes</title>
   <link rel="stylesheet" href="/static/css/home.css">
+  <title>Update Passes</title>
 </head>
 <body>
   <div class="container">
   {{ template "templates/menu.html" . }}
   <div class="passes">
-    <h2>Commit cards:</h2>
+    <h2>Commit passes:</h2>
     {{ range .passes }}
 
     <div class="commitpass">
@@ -16,8 +16,8 @@
             <span>Commit or Delete</span><a href="/static/passes/new_passes/{{ . }}" download="{{ . }}">{{ . }}</a><span>?</span>
         </div>
         <div class="forms">
-            <div class="form post" enctype="multipart/form-data">
-                <form method="post">
+            <div class="form post">
+                <form method="post" enctype="multipart/form-data">
                     <input type="hidden" name="passName" value="{{ . }}"/>
                     <input type="hidden" name="_method" value="post"/>
                     <div class="submitButton">

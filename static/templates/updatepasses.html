@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Update Passes</title>
   <link rel="stylesheet" href="/static/css/home.css">
+  <title>Update Passes</title>
 </head>
 <body>
   <div class="container">
   {{ template "templates/menu.html" . }}
   <div class="passes">
-    <h2>Update cards:</h2>
+    <h2>Update passes:</h2>
     <form method="post" enctype="multipart/form-data">
     {{ range .passes }}
     <div class="updatepass">

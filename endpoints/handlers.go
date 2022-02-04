@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"time"
 	"wallet_server/classes"
 	"wallet_server/dbconn"
 	"wallet_server/jwt"
@@ -194,6 +196,13 @@ func GETupdate(c *gin.Context) {
 	})
 }
 
+// pass names for POSTupdate directive
+var AllPassnames []string = []string{
+	"Collectors.pkpass",
+	"Normal.pkpass",
+	"Yearly.pkpass",
+}
+
 func POSTupdate(c *gin.Context) {
 	// get post form
 	form, err := c.MultipartForm()
@@ -211,15 +220,9 @@ func POSTupdate(c *gin.Context) {
 		on_commit_fnames[i] = f.Name()
 	}
 
-	all_fnames := []string{
-		"Collectors.pkpass",
-		"Normal.pkpass",
-		"Yearly.pkpass",
-	}
-
 	// upload only those passes that are not already in commit
 	var fnames []string
-	for _, fname := range all_fnames {
+	for _, fname := range AllPassnames {
 		fnames = append(fnames, fname)
 		for _, f := range on_commit_fnames {
 			if f == fname {
@@ -265,5 +268,51 @@ func POSTcommit(c *gin.Context) {
 		log.Fatal(err)
 	}
 
-	fmt.Println(form.Value["_method"])
+	method := form.Value["_method"][0]
+	passName := form.Value["passName"][0]
+
+	// make sure pass name is legit
+	passNameLegit := false
+	for _, _passName := range AllPassnames {
+		if _passName == passName {
+			passNameLegit = true
+		}
+	}
+
+	if !passNameLegit {
+		log.Fatal("error: pass name not identified")
+	}
+
+	projectDir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	switch method {
+	case "post":
+		timestamp := time.Now().UTC().String()
+		// archive current pass
+		err := os.Rename(projectDir+"/static/passes/current_passes/"+passName, projectDir+"/static/passes/old_passes/"+passName+"."+timestamp)
+		if err != nil {
+			log.Fatal(err)
+		}
+		// add new pass
+		err = os.Rename(projectDir+"/static/passes/new_passes/"+passName, projectDir+"/static/passes/current_passes/"+passName)
+		if err != nil {
+			log.Fatal(err)
+		}
+	case "delete":
+		// discard the pass
+		err := os.Remove(projectDir + "/static/passes/new_passes/" + passName)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	// reload the page
+	c.Redirect(http.StatusFound, "/commit")
+}
+
+func GETstats(c *gin.Context) {
+	c.HTML(200, "stats.html", gin.H{})
 }
