@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Wallet Passes</title>
+  <link rel="stylesheet" href="/static/css/home.css">
+</head>
+<body>
+  <div class="container">
+  {{ template "templates/menu.html" . }}
+  <div class="passes">
+    <h2>Apple wallet cards:</h2>
+    {{ range .passes }}
+    <a href="/static/passes/current_passes/{{ . }}" download="{{ . }}">{{ . }}</a>
+    {{ end }}
+  </div>
+  </div>
+</body>
+</html>

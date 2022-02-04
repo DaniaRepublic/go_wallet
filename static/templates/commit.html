@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Update Passes</title>
+  <link rel="stylesheet" href="/static/css/home.css">
+</head>
+<body>
+  <div class="container">
+  {{ template "templates/menu.html" . }}
+  <div class="passes">
+    <h2>Commit cards:</h2>
+    {{ range .passes }}
+
+    <div class="commitpass">
+        <div class="passname">
+            <span>Commit or Delete</span><a href="/static/passes/new_passes/{{ . }}" download="{{ . }}">{{ . }}</a><span>?</span>
+        </div>
+        <div class="forms">
+            <div class="form post" enctype="multipart/form-data">
+                <form method="post">
+                    <input type="hidden" name="passName" value="{{ . }}"/>
+                    <input type="hidden" name="_method" value="post"/>
+                    <div class="submitButton">
+                        <input type="submit" value="COMMIT"/>
+                    </div>
+                </form>
+            </div>
+            <div class="form delete">
+                <form method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="passName" value="{{ . }}"/>
+                    <input type="hidden" name="_method" value="delete"/>
+                    <div class="submitButton">
+                        <input type="submit" value="DELETE"/>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {{ end }}
+  </div>
+  </div>
+</body>
+</html>

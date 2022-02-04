@@ -1,0 +1,111 @@
+html,
+body {
+  background: rgb(51, 51, 51);  
+  height: 100%;
+  margin: 0;
+  padding: 0
+}
+
+label {
+    color: rgb(255, 255, 255);
+}
+.updatepass input {
+    color: rgb(255, 255, 255);
+}
+.submitButton input {
+    color:rgba(0, 0, 0);
+    padding: 6px;
+    background-color: rgb(255, 255, 255);
+    border: none;
+    margin-top: 10px;
+}
+.submitButton input:hover {
+    background-color:rgb(233, 233, 224)
+}
+.updatepass {
+    padding-top: 3px;
+    padding-bottom: 3px;
+    left: 2%;
+}
+
+.passes a {
+    color: rgb(255, 255, 255);
+    position: relative;
+    left: 2%;
+    display: block;
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+.passes a:hover {
+    color:rgb(231, 231, 231)
+}
+h2 {
+    color: rgb(255, 255, 255);
+}
+.container {
+    margin-left: 4%;
+    width: fit-content;
+    margin-right: auto;
+}
+.pass {
+    height: 40px;
+}
+.pass:hover {
+    background: rgba(0, 0, 0, 0.2);
+}
+.passes {
+    position: absolute;
+    margin-top: 60px;
+}
+
+.commitpass .passname span {
+    color:rgb(255, 255, 255);
+}
+.commitpass .passname a {
+    margin-right: 7px;
+}
+.commitpass .passname {
+    display: block ruby;
+}
+.commitpass .forms {
+    display: block ruby;
+}
+.commitpass {
+    margin-top: 2%;
+    margin-bottom: 4%;
+}
+.commitpass .forms .form.post .submitButton input, .commitpass .forms .form.delete .submitButton input {
+    color:rgba(0, 0, 0);
+    padding: 6px;
+    background-color: rgb(255, 255, 255);
+    border: none;
+    margin-top: 0;
+}
+.commitpass .forms .form.post .submitButton input:hover, .commitpass .forms .form.delete .submitButton input:hover {
+    background-color:rgb(233, 233, 224)
+}
+
+
+.menu-options a {
+    color: rgb(255, 255, 255);
+}
+.menu {
+  width: 120px;
+  box-shadow: 0 4px 5px 3px rgba(0, 0, 0, 0.2);
+  position: absolute;
+  color: rgb(255, 255, 255);
+  display: none;
+}
+.menu-options {
+  list-style-type: none;
+  padding: 10px 0;
+}
+.menu-option {
+  font-weight: 500;
+  font-size: 14px;
+  padding: 10px 40px 10px 20px;
+  cursor: pointer;
+}
+.menu-option:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
