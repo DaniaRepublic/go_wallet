@@ -16,7 +16,7 @@ func VerifyToken() gin.HandlerFunc {
 			//})
 		}
 
-		name, id, err := validateToken(token)
+		name, err := validateToken(token)
 		if err != nil {
 			c.Redirect(http.StatusFound, "/login")
 			//c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
@@ -24,7 +24,6 @@ func VerifyToken() gin.HandlerFunc {
 			//})
 		}
 		c.Set("name", name)
-		c.Set("id", id)
 
 		c.Next()
 	}

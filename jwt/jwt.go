@@ -36,7 +36,7 @@ func GenerateToken(u classes.User, ttl int) (string, error) {
 	return tokenStr, nil
 }
 
-func validateToken(tokenStr string) (string, int, error) {
+func validateToken(tokenStr string) (string, error) {
 	var claims authClaims
 	token, err := jwt.ParseWithClaims(tokenStr, &claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -45,12 +45,12 @@ func validateToken(tokenStr string) (string, int, error) {
 		return jwtKey, nil
 	})
 	if err != nil {
-		return "", -1, err
+		return "", err
 	}
 
 	if !token.Valid {
-		return "", -1, errors.New("invalid token")
+		return "", errors.New("invalid token")
 	}
 
-	return claims.Subject, claims.ID, nil
+	return claims.Subject, nil
 }

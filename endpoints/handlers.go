@@ -18,10 +18,23 @@ import (
 )
 
 type Env struct {
-	DB *dbconn.MYSQLConn // pointer to mysql
+	DB *dbconn.MYSQLConn // pointer to mysql connection
 }
 
 const JWT_TTL int = 1800 // 1800 seconds = 30 min
+
+// pass names for POSTupdate handler
+var AllPassnames []string = []string{
+	"Collectors.pkpass",
+	"Normal.pkpass",
+	"Yearly.pkpass",
+}
+
+/*
+\
+Next come endpoints handlers for WALLET server ->
+  /
+*/
 
 func (e *Env) POSTregister(c *gin.Context) { // new device<->token registration
 	devLibId := c.Param("deviceLibraryIdentifier")
@@ -127,6 +140,16 @@ func (e *Env) GETupdatedpass(c *gin.Context) {
 	c.Header("Content-Type", "application/vnd.apple.pkpass")
 }
 
+func PUSHrequest(passPath, passName string) error {
+	return nil
+}
+
+/*
+\
+Next come endpoints handlers for WEBSITE server ->
+  /
+*/
+
 func GETlogin(c *gin.Context) {
 	c.HTML(http.StatusOK, "login.html", gin.H{})
 }
@@ -194,13 +217,6 @@ func GETupdate(c *gin.Context) {
 	c.HTML(200, "updatepasses.html", gin.H{
 		"passes": fnames,
 	})
-}
-
-// pass names for POSTupdate directive
-var AllPassnames []string = []string{
-	"Collectors.pkpass",
-	"Normal.pkpass",
-	"Yearly.pkpass",
 }
 
 func POSTupdate(c *gin.Context) {
@@ -298,6 +314,11 @@ func POSTcommit(c *gin.Context) {
 		}
 		// add new pass
 		err = os.Rename(projectDir+"/static/passes/new_passes/"+passName, projectDir+"/static/passes/current_passes/"+passName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		// make push request to APNs
+		err = PUSHrequest(projectDir+"/static/passes/current_passes/"+passName, passName)
 		if err != nil {
 			log.Fatal(err)
 		}
