@@ -7,10 +7,10 @@ import (
 
 var AlphaNumRe = regexp.MustCompile("^[a-zA-Z0-9]*$")
 var PassTypeIds = []string{
-	"pass.art4.common.DigitalCard",
-	"pass.art4.yearly.DigitalCard",
-	"pass.art4.collector.DigitalCard",
-	"pass.art4.collectorp.DigitalCard",
+	"pass.art4.common.Card",
+	"pass.art4.yearly.Card",
+	"pass.art4.collectors.Card",
+	"pass.art4.collectorsp.Card",
 }
 
 func TestDevLibId(devLibId string) error {

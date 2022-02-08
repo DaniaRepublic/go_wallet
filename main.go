@@ -22,15 +22,15 @@ func router4Wallet(endpointsENV *endpoints.Env) http.Handler {
 	router.Use(gin.Recovery())
 	router.Use(gin.Logger())
 
-	router.GET(updatablepassesURL, endpointsENV.GETupdatepass) // send latest passes
+	router.GET(getupdatableURL, endpointsENV.GETupdatablepass) // gets updatable passes
 
 	// group that requires authentication
 	wallet := router.Group("/")
 	wallet.Use(authentication.VerifyAuthHeader())
 	{
-		wallet.POST(registerURL, endpointsENV.POSTregister)     // register device for update notifications
-		wallet.DELETE(registerURL, endpointsENV.DELETEregister) // delete device from update notifications
-		wallet.GET(sendupdatedpassURL, endpointsENV.GETupdatedpass)
+		wallet.POST(registerURL, endpointsENV.POSTregister)       // register device for update notifications
+		wallet.DELETE(registerURL, endpointsENV.DELETEregister)   // delete device from update notifications
+		wallet.GET(sendupdatableURL, endpointsENV.GETupdatedpass) // sends updatable passes
 	}
 
 	return router
@@ -55,7 +55,7 @@ func router4Website(endpointsENV *endpoints.Env) http.Handler {
 		website.GET(updateURL, endpoints.GETupdate)
 		website.POST(updateURL, endpoints.POSTupdate)
 		website.GET(commitURL, endpoints.GETcommit)
-		website.POST(commitURL, endpoints.POSTcommit)
+		website.POST(commitURL, endpointsENV.POSTcommit)
 		website.GET(statsURL, endpoints.GETstats)
 	}
 
@@ -71,14 +71,14 @@ func main() {
 	}
 
 	server4Wallet := &http.Server{
-		Addr:         ":8080",
+		Addr:         ":8000",
 		Handler:      router4Wallet(endpointsENV),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
 
 	server4Website := &http.Server{
-		Addr:         ":8000",
+		Addr:         ":8080",
 		Handler:      router4Website(endpointsENV),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
@@ -91,6 +91,8 @@ func main() {
 		}
 		return err
 	})
+
+	//endpointsENV.PUSHrequest("common.pkpass")
 
 	g.Go(func() error {
 		err := server4Website.ListenAndServe()
