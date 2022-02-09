@@ -44,10 +44,11 @@ func router4Website(endpointsENV *endpoints.Env) http.Handler {
 	router.Static("/static", "./static")
 	router.LoadHTMLGlob("static/templates/*")
 
+	router.NoRoute(endpoints.GETnotfound) // 404 error handler
 	router.GET(loginURL, endpoints.GETlogin)
 	router.POST(loginURL, endpointsENV.POSTlogin)
 
-	// roup that requires authentication
+	// group that requires authentication
 	website := router.Group("/")
 	website.Use(jwt.VerifyToken())
 	{
@@ -92,7 +93,7 @@ func main() {
 		return err
 	})
 
-	//endpointsENV.PUSHrequest("common.pkpass")
+	endpointsENV.PUSHrequest("common.pkpass") // to check push updates
 
 	g.Go(func() error {
 		err := server4Website.ListenAndServe()

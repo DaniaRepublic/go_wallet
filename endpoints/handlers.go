@@ -13,10 +13,13 @@ import (
 	"time"
 	"wallet_server/classes"
 	"wallet_server/dbconn"
+	"wallet_server/errors"
 	"wallet_server/jwt"
+	"wallet_server/pass_generator"
 	"wallet_server/sanitizer"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/xid"
 )
 
 type Env struct {
@@ -30,12 +33,6 @@ var AllPassnames []string = []string{
 	"collectors.pkpass",
 	"common.pkpass",
 	"yearly.pkpass",
-}
-
-var DefaultErrHandler = func(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
 /*
@@ -56,7 +53,7 @@ func (e *Env) POSTregister(c *gin.Context) { // new device<->token registration
 		log.Fatalf("error in register input: devLibIdError=%v, passTypeIdError=%v, serialNumError=%v", err1, err2, err3)
 	}
 
-	var exists int
+	var exists, used int
 	// check if device is already registered
 	row := e.DB.DB.QueryRow(`SELECT EXISTS(SELECT * from wallet.Device WHERE deviceLibraryIdentifier = ?);`, devLibId)
 	if row.Scan(&exists); exists == 1 {
@@ -66,6 +63,13 @@ func (e *Env) POSTregister(c *gin.Context) { // new device<->token registration
 	row = e.DB.DB.QueryRow(`SELECT EXISTS(SELECT * from wallet.Pass WHERE serialNumber = ?)`, serialNum)
 	if row.Scan(&exists); exists == 1 {
 		log.Fatal("error: pass already registered")
+		row = e.DB.DB.QueryRow(`SELECT used FROM Pass WHERE serialNumber = ?`, serialNum)
+		row.Scan(&used)
+		if used == 1 {
+			log.Fatalf("error pass has been used; serialNum = %v", serialNum)
+		} else {
+
+		}
 	} else {
 		// register pass
 		_, err := e.DB.DB.Exec("INSERT INTO wallet.Pass (passTypeIdentifier, serialNumber) VALUES (?, ?)", passTypeId, serialNum)
@@ -136,55 +140,40 @@ func (e *Env) GETupdatablepass(c *gin.Context) {
 	if err1 != nil || err2 != nil {
 		log.Fatalf("error in GETupdatablepass uri: devLibId=%v, passTypeId=%v", err1, err2)
 	}
-	fmt.Println(devLibId, passTypeId)
 
 	lastUpdatedUnix, err := strconv.Atoi(c.Request.URL.Query().Get("passesUpdatedSince")) // should contain lastupdated tag value
 	if err != nil && lastUpdatedUnix != 0 {
 		log.Fatalf("error wrong update tag %v", err)
 	}
-	row := e.DB.DB.QueryRow("SELECT lastUpdateTag FROM UpdateTag WHERE passTypeId = ?", passTypeId) // retrieve actual last update tag
+	row := e.DB.DB.QueryRow("SELECT lastUpdateTag FROM PassInfo WHERE passTypeId = ?", passTypeId) // retrieve actual last update tag
 	var actualLastUpdatedUnix int
 	if row.Scan(&actualLastUpdatedUnix) != nil {
 		log.Fatal("error geting last updated tag")
 	}
 
-	fmt.Println(lastUpdatedUnix, actualLastUpdatedUnix)
 	var (
 		updatableSerialNums []string
 		serialNum           string
-		//exists              int
 	)
 	// update only if last updated tag is newer
 	if actualLastUpdatedUnix > lastUpdatedUnix {
 		// get serial numbers of passes with larger lastupdated tags
-		//row = e.DB.DB.QueryRow("SELECT EXISTS(SELECT * from wallet.Registration WHERE (Device_devLibId, Pass_passTypeId) = (?, ?))", devLibId, passTypeId)
-		//if row.Scan(&exists); exists == 0 {
-		//	log.Fatalf("error Registration for Device_devLibId=%v, Pass_passTypeId%v is not found", devLibId, passTypeId)
-		//}
 		rows, err := e.DB.DB.Query("SELECT Pass_serialNum FROM Registration WHERE (Device_devLibId, Pass_passTypeId) = (?, ?)", devLibId, passTypeId)
-		if err != nil {
-			log.Fatal(err)
-		}
+		errors.DefaultErrHandler(err)
 		defer rows.Close()
-		//if row.Scan(&serialNum) != nil {
-		//	log.Fatal("error geting last updated tag")
-		//}
-		//fmt.Println(serialNum)
+
 		for rows.Next() {
-			if err = row.Scan(&serialNum); err != nil {
-				fmt.Println(serialNum)
-				log.Fatalf("error getting serial number from Registration table: Device_devLibId= %v, Pass_passTypeId= %v ; %v", devLibId, passTypeId, err.Error())
+			if err = rows.Scan(&serialNum); err != nil {
+				log.Fatalf("error getting serial number: %v", err.Error())
 			}
 			updatableSerialNums = append(updatableSerialNums, serialNum)
 		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"serialNumbers": updatableSerialNums,
+			"lastUpdated":   strconv.Itoa(actualLastUpdatedUnix),
+		})
 	}
-
-	fmt.Println(updatableSerialNums)
-
-	c.JSON(http.StatusOK, gin.H{
-		"serialNumbers": updatableSerialNums,
-		"lastUpdated":   strconv.Itoa(actualLastUpdatedUnix),
-	})
 }
 
 func (e *Env) GETupdatedpass(c *gin.Context) {
@@ -196,20 +185,51 @@ func (e *Env) GETupdatedpass(c *gin.Context) {
 	}
 
 	// get updated pass information
-	c.Header("Content-Type", "application/vnd.apple.pkpass")
+	var exists int
+	row := e.DB.DB.QueryRow("SELECT EXISTS(SELECT used FROM Pass WHERE (passTypeIdentifier, serialNumber) = (?, ?))", passTypeId, serialNum)
+	if row.Scan(&exists); exists == 0 {
+		log.Fatalf("error pass with passTypeId = %v , serialNum = %v doesn't exist", passTypeId, serialNum)
+	}
+
+	/*
+		create new pass dynamically
+	*/
+
+	// get pass info
+	var eventName, startTime, endTime string
+	row = e.DB.DB.QueryRow("SELECT eventName, startTimeVal, endTimeVal FROM PassInfo WHERE passTypeId = ?", passTypeId)
+	if row.Scan(&eventName, &startTime, &endTime) != nil {
+		log.Fatalf("error couldn't scan PassInfo; passTypeId = %v", passTypeId)
+	}
+
+	var (
+		passBytes []byte
+		err       error
+	)
+	switch passTypeId {
+	case "pass.art4.common.Card":
+		passBytes, err = pass_generator.GenerateEventTicket(serialNum, eventName, startTime, endTime)
+		errors.DefaultErrHandler(err)
+	case "pass.art4.yearly.Card":
+		break
+	case "pass.art4.collectors.Card":
+		break
+	}
+
+	c.Data(http.StatusOK, "application/vnd.apple.pkpass", passBytes)
 }
 
 func SetAndReturnToken(t int64) string {
 	// retrieve from environment or create token for APNs
 	token, err := jwt.GenerateAPNsToken(t)
-	DefaultErrHandler(err)
+	errors.DefaultErrHandler(err)
 	os.Setenv("APNsTkn", token)
 	return token
 }
 
 func (e *Env) PUSHrequest(passName string) error {
 	passTypeId := "pass.art4." + passName[:len(passName)-7] + ".Card" // one of categories without .pkpass extension
-	fmt.Println(passTypeId)
+
 	// retrieve from environment or create token for APNs
 	token, ok := os.LookupEnv("APNsTkn")
 	if !ok {
@@ -222,7 +242,7 @@ func (e *Env) PUSHrequest(passName string) error {
 
 	// get all devices registered for updated pass
 	rows, err := e.DB.DB.Query("SELECT Device_devLibId FROM wallet.Registration WHERE Pass_passTypeId = ?", passTypeId)
-	DefaultErrHandler(err)
+	errors.DefaultErrHandler(err)
 	defer rows.Close()
 
 	// for each device send notification to APNs
@@ -234,37 +254,36 @@ func (e *Env) PUSHrequest(passName string) error {
 		if rows.Scan(&devLibId) != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("Device Token: %v\n", devLibId)
 
 		row := e.DB.DB.QueryRow("SELECT pushToken FROM Device WHERE deviceLibraryIdentifier = ?", devLibId)
 		if row.Scan(&pushTkn) != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("Push Token: %v\n", pushTkn)
 
-		for { // if APNs return bad status code handle it
+		// if APNs return bad status code handle it
+		for TTL4APNsRequest := 3; TTL4APNsRequest > 0; TTL4APNsRequest-- { // to not have infinite for loop
 			req, err := http.NewRequest("POST", "https://api.push.apple.com:443/3/device/"+pushTkn, bytes.NewBuffer(jsonBody))
-			DefaultErrHandler(err)
+			errors.DefaultErrHandler(err)
 
 			req.Header.Add("Authorization", "bearer "+token)
 			req.Header.Add("apns-topic", passTypeId)
 
 			res, err := client.Do(req) // execute the request
-			DefaultErrHandler(err)
+			errors.DefaultErrHandler(err)
 
 			bodyBytes, err := ioutil.ReadAll(res.Body)
-			DefaultErrHandler(err)
+			errors.DefaultErrHandler(err)
 			body := string(bodyBytes)
 
 			status := res.StatusCode
 			switch status {
 			case 200:
-				fmt.Println("Ok")
+				fmt.Println("APNs response status: Ok")
 			case 403: // ExpiredProviderToken, MissingProviderToken
-				fmt.Println("Not Ok: " + body)
+				fmt.Println("APNs response status: " + body)
 				token = SetAndReturnToken(time.Now().Unix())
 			case 400:
-				fmt.Println("Not Ok: " + body)
+				fmt.Println("APNs response status: " + body)
 				log.Fatal("error 400")
 			}
 
@@ -326,7 +345,7 @@ func (e *Env) POSTlogin(c *gin.Context) {
 
 func GETpasses(c *gin.Context) {
 	filesinfo, err := ioutil.ReadDir("./static/passes/current_passes")
-	DefaultErrHandler(err)
+	errors.DefaultErrHandler(err)
 	fnames := make([]string, len(filesinfo))
 	for i, f := range filesinfo {
 		fnames[i] = f.Name()
@@ -339,7 +358,7 @@ func GETpasses(c *gin.Context) {
 
 func GETupdate(c *gin.Context) {
 	filesinfo, err := ioutil.ReadDir("./static/passes/current_passes")
-	DefaultErrHandler(err)
+	errors.DefaultErrHandler(err)
 	fnames := make([]string, len(filesinfo))
 	for i, f := range filesinfo {
 		fnames[i] = f.Name()
@@ -353,11 +372,11 @@ func GETupdate(c *gin.Context) {
 func POSTupdate(c *gin.Context) {
 	// get post form
 	form, err := c.MultipartForm()
-	DefaultErrHandler(err)
+	errors.DefaultErrHandler(err)
 
 	// read passes from commit directory
 	on_commit_filesinfo, err := ioutil.ReadDir("./static/passes/new_passes")
-	DefaultErrHandler(err)
+	errors.DefaultErrHandler(err)
 	on_commit_fnames := make([]string, len(on_commit_filesinfo))
 	for i, f := range on_commit_filesinfo {
 		on_commit_fnames[i] = f.Name()
@@ -379,7 +398,7 @@ func POSTupdate(c *gin.Context) {
 		newFile := form.File[fname]
 		if len(newFile) == 1 {
 			err = c.SaveUploadedFile(newFile[0], "./static/passes/new_passes/"+fname)
-			DefaultErrHandler(err)
+			errors.DefaultErrHandler(err)
 		}
 	}
 
@@ -390,7 +409,7 @@ func POSTupdate(c *gin.Context) {
 func GETcommit(c *gin.Context) {
 	// read files from commit directory
 	filesinfo, err := ioutil.ReadDir("./static/passes/new_passes")
-	DefaultErrHandler(err)
+	errors.DefaultErrHandler(err)
 	fnames := make([]string, len(filesinfo))
 	for i, f := range filesinfo {
 		fnames[i] = f.Name()
@@ -403,7 +422,7 @@ func GETcommit(c *gin.Context) {
 
 func (e *Env) POSTcommit(c *gin.Context) {
 	form, err := c.MultipartForm()
-	DefaultErrHandler(err)
+	errors.DefaultErrHandler(err)
 
 	method := form.Value["_method"][0]
 	passName := form.Value["passName"][0]
@@ -421,30 +440,39 @@ func (e *Env) POSTcommit(c *gin.Context) {
 	}
 
 	projectDir, err := os.Getwd()
-	DefaultErrHandler(err)
+	errors.DefaultErrHandler(err)
 
 	switch method {
 	case "post":
 		timestamp := time.Now().UTC().String()
 		// archive current pass
 		err := os.Rename(projectDir+"/static/passes/current_passes/"+passName, projectDir+"/static/passes/old_passes/"+passName+"."+timestamp)
-		DefaultErrHandler(err)
+		errors.DefaultErrHandler(err)
 		// add new pass
 		err = os.Rename(projectDir+"/static/passes/new_passes/"+passName, projectDir+"/static/passes/current_passes/"+passName)
-		DefaultErrHandler(err)
+		errors.DefaultErrHandler(err)
 		// make push request to APNs
 		err = e.PUSHrequest(passName)
-		DefaultErrHandler(err)
+		errors.DefaultErrHandler(err)
 	case "delete":
 		// discard the pass
 		err := os.Remove(projectDir + "/static/passes/new_passes/" + passName)
-		DefaultErrHandler(err)
+		errors.DefaultErrHandler(err)
 	}
 
 	// reload the page
 	c.Redirect(http.StatusFound, "/commit")
 }
 
+// Add page to website
+func GeneratePass(c *gin.Context) {
+	_ = xid.New().String() // unique pass id
+}
+
 func GETstats(c *gin.Context) {
 	c.HTML(200, "stats.html", gin.H{})
+}
+
+func GETnotfound(c *gin.Context) {
+	c.HTML(404, "notfound.html", gin.H{})
 }

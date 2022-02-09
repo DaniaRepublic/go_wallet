@@ -9,6 +9,12 @@ require golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 require github.com/golang-jwt/jwt v3.2.2+incompatible
 
 require (
+	github.com/fullsailor/pkcs7 v0.0.0-20190404230743-d7302db945fa // indirect
+	github.com/rs/xid v1.3.0 // indirect
+	gopkg.in/go-playground/colors.v1 v1.2.0 // indirect
+)
+
+require (
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.13.0 // indirect
 	github.com/go-playground/universal-translator v0.17.0 // indirect

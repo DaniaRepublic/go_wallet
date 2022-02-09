@@ -28,7 +28,11 @@ label {
     left: 2%;
 }
 
-.passes a {
+.passes, .not_found {
+    position: absolute;
+    margin-top: 60px;
+}
+.passes a, .not_found a {
     color: rgb(255, 255, 255);
     position: relative;
     left: 2%;
@@ -36,8 +40,11 @@ label {
     padding-top: 2px;
     padding-bottom: 2px;
 }
-.passes a:hover {
+.passes a:hover, .passes a:hover {
     color:rgb(231, 231, 231)
+}
+.not_found h2 {
+    color: rgb(204, 73, 73);
 }
 h2 {
     color: rgb(255, 255, 255);
@@ -52,10 +59,6 @@ h2 {
 }
 .pass:hover {
     background: rgba(0, 0, 0, 0.2);
-}
-.passes {
-    position: absolute;
-    margin-top: 60px;
 }
 
 .commitpass .passname span {

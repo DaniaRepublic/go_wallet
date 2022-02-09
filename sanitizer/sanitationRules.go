@@ -5,13 +5,15 @@ import (
 	"regexp"
 )
 
-var AlphaNumRe = regexp.MustCompile("^[a-zA-Z0-9]*$")
-var PassTypeIds = []string{
-	"pass.art4.common.Card",
-	"pass.art4.yearly.Card",
-	"pass.art4.collectors.Card",
-	"pass.art4.collectorsp.Card",
-}
+var (
+	AlphaNumRe  = regexp.MustCompile("^[a-zA-Z0-9]*$")
+	PassTypeIds = []string{
+		"pass.art4.common.Card",
+		"pass.art4.yearly.Card",
+		"pass.art4.collectors.Card",
+		"pass.art4.collectorsp.Card",
+	}
+)
 
 func TestDevLibId(devLibId string) error {
 	if len(devLibId) != 32 {
