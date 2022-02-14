@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="/static/css/home.css">
+  <title>Update Pass</title>
+</head>
+<body>
+  <div class="container">
+  {{ template "templates/menu.html" . }}
+  <div class="passes update">
+    <h2>Update {{ .pass }} pass</h2>
+    <form method="post" enctype="multipart/form-data">
+    <div class="updatepass">
+      <label for="eventName">Event name:</label><br>
+      <input type="text" id="eventName" name="eventName"/><br>
+      <label for="startTime">Start time:</label><br>
+      <input type="text" id="startTime" name="startTime"/><br>
+      <label for="endTime">End time:</label><br>
+      <input type="text" id="endTime" name="endTime"/>
+      <input type="hidden" name="passType" value="{{ .pass }}"/>
+    </div>
+    <div class="submitButton">
+      <input type="submit" value="SUBMIT"/>
+    </div>
+    </form>
+  </div>
+  </div>
+</body>
+</html>

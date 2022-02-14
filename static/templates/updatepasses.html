@@ -6,21 +6,13 @@
 </head>
 <body>
   <div class="container">
-  {{ template "templates/menu.html" . }}
-  <div class="passes">
-    <h2>Update passes:</h2>
-    <form method="post" enctype="multipart/form-data">
-    {{ range .passes }}
-    <div class="updatepass">
-      <label for="{{ . }}">Upload {{ . }}</label><br>
-      <input type="file" id="{{ . }}" name="{{ . }}" accept=".pkpass"/>
+    {{ template "templates/menu.html" . }}
+    <div class="passes">
+      <h2>Choose pass to update:</h2>
+      {{ range .passes }}
+        <a href="/update/{{ . }}">{{ . }}</a>
+      {{ end }}
     </div>
-    {{ end }}
-    <div class="submitButton">
-      <input type="submit" value="SUBMIT"/>
-    </div>
-    </form>
-  </div>
   </div>
 </body>
 </html>

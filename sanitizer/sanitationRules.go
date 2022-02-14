@@ -54,3 +54,10 @@ func CheckLoginName(name string) error {
 	}
 	return fmt.Errorf("error: name not alphanumeric")
 }
+
+func TestPushToken(pushTkn string) error {
+	if AlphaNumRe.MatchString(pushTkn) {
+		return nil
+	}
+	return fmt.Errorf("error: push token not alphanumeric")
+}

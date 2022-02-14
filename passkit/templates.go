@@ -69,7 +69,7 @@ type inMemoryPassTemplate struct {
 	files map[string][]byte
 }
 
-	func NewInMemoryPassTemplate() *inMemoryPassTemplate {
+func NewInMemoryPassTemplate() *inMemoryPassTemplate {
 	return &inMemoryPassTemplate{files: make(map[string][]byte)}
 }
 

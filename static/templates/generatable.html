@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="/static/css/home.css">
+  <title>Generate Passes</title>
+</head>
+<body>
+  <div class="container">
+  {{ template "templates/menu.html" . }}
+  <div class="passes">
+    <h2>Click on pass to generate:</h2>
+    {{ range .passes }}
+    <a href="/generate/{{ . }}" download="{{ . }}">{{ . }}</a>
+    {{ end }}
+  </div>
+  </div>
+</body>
+</html>

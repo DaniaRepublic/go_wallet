@@ -28,9 +28,9 @@ func router4Wallet(endpointsENV *endpoints.Env) http.Handler {
 	wallet := router.Group("/")
 	wallet.Use(authentication.VerifyAuthHeader())
 	{
-		wallet.POST(registerURL, endpointsENV.POSTregister)       // register device for update notifications
-		wallet.DELETE(registerURL, endpointsENV.DELETEregister)   // delete device from update notifications
-		wallet.GET(sendupdatableURL, endpointsENV.GETupdatedpass) // sends updatable passes
+		wallet.POST(registerURL, endpointsENV.POSTregister)     // register device for update notifications
+		wallet.DELETE(registerURL, endpointsENV.DELETEregister) // delete device from update notifications
+		wallet.GET(updatedpassURL, endpointsENV.GETupdatedpass) // sends updatable passes
 	}
 
 	return router
@@ -54,9 +54,12 @@ func router4Website(endpointsENV *endpoints.Env) http.Handler {
 	{
 		website.GET(passesURL, endpoints.GETpasses)
 		website.GET(updateURL, endpoints.GETupdate)
-		website.POST(updateURL, endpoints.POSTupdate)
+		website.GET(updatepassURL, endpoints.GETupdatepass)
+		website.POST(updatepassURL, endpoints.POSTupdatepass)
 		website.GET(commitURL, endpoints.GETcommit)
 		website.POST(commitURL, endpointsENV.POSTcommit)
+		website.GET(generatableURL, endpoints.GETgeneratable)
+		website.GET(generateURL, endpointsENV.GETgenerate)
 		website.GET(statsURL, endpoints.GETstats)
 	}
 
@@ -92,8 +95,6 @@ func main() {
 		}
 		return err
 	})
-
-	endpointsENV.PUSHrequest("common.pkpass") // to check push updates
 
 	g.Go(func() error {
 		err := server4Website.ListenAndServe()

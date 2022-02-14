@@ -11,6 +11,7 @@ func VerifyToken() gin.HandlerFunc {
 		token, err := c.Cookie("JWTAuth")
 		if err != nil {
 			c.Redirect(http.StatusFound, "/login")
+			c.Abort()
 			//c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 			//	"error no JWTAuth cookie": err,
 			//})
@@ -19,6 +20,7 @@ func VerifyToken() gin.HandlerFunc {
 		name, err := validateToken(token)
 		if err != nil {
 			c.Redirect(http.StatusFound, "/login")
+			c.Abort()
 			//c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 			//	"error cookie JWTAuth invalid": err,
 			//})

@@ -5,29 +5,42 @@ body {
   margin: 0;
   padding: 0
 }
-
+h2 {
+    color: rgb(255, 255, 255);
+}
 label {
     color: rgb(255, 255, 255);
 }
-.updatepass input {
-    color: rgb(255, 255, 255);
-}
-.submitButton input {
-    color:rgba(0, 0, 0);
-    padding: 6px;
-    background-color: rgb(255, 255, 255);
-    border: none;
-    margin-top: 10px;
-}
-.submitButton input:hover {
-    background-color:rgb(233, 233, 224)
-}
+
 .updatepass {
     padding-top: 3px;
     padding-bottom: 3px;
     left: 2%;
 }
+.updatepass h3 {
+    color: rgb(255, 255, 255);
+    margin-bottom: 4%;
+    margin-top: 10%;
+}
+.updatepass input {
+    background-color: rgb(255, 255, 255);
+    border: none;
+    margin-bottom: 2%;
+}
+.submitButton input {
+    color:rgba(0, 0, 0);
+    padding: 2% 4%;
+    background-color: rgb(255, 255, 255);
+    border: none;
+    margin-top: 8%;
+}
+.submitButton input:hover {
+    background-color:rgb(233, 233, 224)
+}
 
+.passes.update h2 {
+    margin-bottom: 6%;
+}
 .passes, .not_found {
     position: absolute;
     margin-top: 60px;
@@ -45,9 +58,6 @@ label {
 }
 .not_found h2 {
     color: rgb(204, 73, 73);
-}
-h2 {
-    color: rgb(255, 255, 255);
 }
 .container {
     margin-left: 4%;

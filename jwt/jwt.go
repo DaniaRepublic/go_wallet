@@ -46,7 +46,6 @@ func GenerateAPNsToken(iat int64) (string, error) {
 		return "", err
 	}
 
-	fmt.Println(tokenStr)
 	return tokenStr, nil
 }
 
