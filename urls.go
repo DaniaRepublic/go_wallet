@@ -1,13 +1,13 @@
 package main
 
-// Apple wallet urls
+// Apple wallet uris
 var (
 	registerURL     = "/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber"
 	getupdatableURL = "/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier"
 	updatedpassURL  = "/v1/passes/:passTypeIdentifier/:serialNumber"
 )
 
-// Website urls
+// Website uris
 var (
 	loginURL       = "/login"
 	passesURL      = "/passes"
@@ -17,4 +17,14 @@ var (
 	generatableURL = "/generate"
 	generateURL    = "/generate/:passType"
 	statsURL       = "/stats"
+)
+
+// Scanner uris
+var (
+	scanURL = "/:passType/:serialNumber"
+)
+
+// Payment system uris
+var (
+	requestpassURL = "/:passType"
 )

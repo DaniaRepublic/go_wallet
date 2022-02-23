@@ -33,7 +33,7 @@ func GenerateAPNsToken(iat int64) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	pemCert, err := os.ReadFile(projectDir + "/Key.pem")
+	pemCert, err := os.ReadFile(projectDir + "/APNsJWTKey.pem")
 	if err != nil {
 		return "", err
 	}

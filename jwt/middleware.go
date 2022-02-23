@@ -12,18 +12,14 @@ func VerifyToken() gin.HandlerFunc {
 		if err != nil {
 			c.Redirect(http.StatusFound, "/login")
 			c.Abort()
-			//c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-			//	"error no JWTAuth cookie": err,
-			//})
+			return
 		}
 
 		name, err := validateToken(token)
 		if err != nil {
 			c.Redirect(http.StatusFound, "/login")
 			c.Abort()
-			//c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-			//	"error cookie JWTAuth invalid": err,
-			//})
+			return
 		}
 		c.Set("name", name)
 

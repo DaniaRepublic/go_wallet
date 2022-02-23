@@ -3,16 +3,11 @@ package sanitizer
 import (
 	"fmt"
 	"regexp"
+	vars "wallet_server/pass_vars"
 )
 
 var (
-	AlphaNumRe  = regexp.MustCompile("^[a-zA-Z0-9]*$")
-	PassTypeIds = []string{
-		"pass.art4.common.Card",
-		"pass.art4.yearly.Card",
-		"pass.art4.collectors.Card",
-		"pass.art4.collectorsp.Card",
-	}
+	AlphaNumRe = regexp.MustCompile("^[a-zA-Z0-9]*$")
 )
 
 func TestDevLibId(devLibId string) error {
@@ -26,7 +21,7 @@ func TestDevLibId(devLibId string) error {
 }
 
 func TestPassTypeId(passTypeId string) error {
-	for _, pass := range PassTypeIds {
+	for _, pass := range vars.PassTypeIds {
 		if passTypeId == pass {
 			return nil
 		}

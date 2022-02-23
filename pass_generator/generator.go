@@ -6,6 +6,10 @@ import (
 	"wallet_server/passkit"
 )
 
+var (
+	WALLET_SERV_ADDR = os.Getenv("WALLET_SERV_ADDR")
+)
+
 func GenerateEventTicket(serialNum, eventName, startTime, endTime, passType string) ([]byte, error) {
 	passJson := passkit.NewEventTicket()
 	// ticket fields
@@ -37,12 +41,13 @@ func GenerateEventTicket(serialNum, eventName, startTime, endTime, passType stri
 	passJson.AddAuxiliaryFields(auxiliaryField)
 
 	// pass.json contents
+	passTypeId := "pass.art4." + passType + ".Card"
 	pass := passkit.Pass{
 		FormatVersion:       1,
 		TeamIdentifier:      "G63G4WSKWU",
-		PassTypeIdentifier:  "pass.art4." + passType + ".Card",
+		PassTypeIdentifier:  passTypeId,
 		AuthenticationToken: os.Getenv("AUTH_TOKEN"),
-		WebServiceURL:       "https://3181-195-91-208-19.ngrok.io/",
+		WebServiceURL:       WALLET_SERV_ADDR,
 		OrganizationName:    "Art4",
 		SerialNumber:        serialNum,
 		Description:         "Art4 Event Ticket",
@@ -50,7 +55,7 @@ func GenerateEventTicket(serialNum, eventName, startTime, endTime, passType stri
 		Barcodes: []passkit.Barcode{
 			{
 				Format:          passkit.BarcodeFormatQR,
-				Message:         "https://www.art4.ru/show/v-pyli-etoy-planety/",
+				Message:         serialNum + "@" + passType,
 				MessageEncoding: "iso-8859-1",
 			},
 		},
@@ -196,12 +201,13 @@ func GenerateYearlyCard(serialNum, eventName, startTime, endTime, passType strin
 	passJson.AddAuxiliaryFields(auxiliaryField)
 
 	// pass.json contents
+	passTypeId := "pass.art4." + passType + ".Card"
 	pass := passkit.Pass{
 		FormatVersion:       1,
 		TeamIdentifier:      "G63G4WSKWU",
-		PassTypeIdentifier:  "pass.art4." + passType + ".Card",
+		PassTypeIdentifier:  passTypeId,
 		AuthenticationToken: os.Getenv("AUTH_TOKEN"),
-		WebServiceURL:       "https://3181-195-91-208-19.ngrok.io/",
+		WebServiceURL:       WALLET_SERV_ADDR,
 		OrganizationName:    "Art4",
 		SerialNumber:        serialNum,
 		Description:         "Art4 Event Ticket",
@@ -209,7 +215,7 @@ func GenerateYearlyCard(serialNum, eventName, startTime, endTime, passType strin
 		Barcodes: []passkit.Barcode{
 			{
 				Format:          passkit.BarcodeFormatQR,
-				Message:         "https://www.art4.ru/show/v-pyli-etoy-planety/",
+				Message:         serialNum + "@" + passType,
 				MessageEncoding: "iso-8859-1",
 			},
 		},
@@ -355,12 +361,13 @@ func GenerateCollectorsCard(serialNum, eventName, startTime, endTime, passType s
 	passJson.AddAuxiliaryFields(auxiliaryField)
 
 	// pass.json contents
+	passTypeId := "pass.art4." + passType + ".Card"
 	pass := passkit.Pass{
 		FormatVersion:       1,
 		TeamIdentifier:      "G63G4WSKWU",
-		PassTypeIdentifier:  "pass.art4." + passType + ".Card",
+		PassTypeIdentifier:  passTypeId,
 		AuthenticationToken: os.Getenv("AUTH_TOKEN"),
-		WebServiceURL:       "https://3181-195-91-208-19.ngrok.io/",
+		WebServiceURL:       WALLET_SERV_ADDR,
 		OrganizationName:    "Art4",
 		SerialNumber:        serialNum,
 		Description:         "Art4 Event Ticket",
@@ -368,7 +375,7 @@ func GenerateCollectorsCard(serialNum, eventName, startTime, endTime, passType s
 		Barcodes: []passkit.Barcode{
 			{
 				Format:          passkit.BarcodeFormatQR,
-				Message:         "https://www.art4.ru/show/v-pyli-etoy-planety/",
+				Message:         serialNum + "@" + passType,
 				MessageEncoding: "iso-8859-1",
 			},
 		},
@@ -514,20 +521,21 @@ func GenerateJsonPassTemplate(eventName, startTime, endTime, passType string) (*
 	passJson.AddAuxiliaryFields(auxiliaryField)
 
 	// pass.json contents
+	passTypeId := "pass.art4." + passType + ".Card"
 	pass := passkit.Pass{
 		FormatVersion:       1,
 		TeamIdentifier:      "G63G4WSKWU",
-		PassTypeIdentifier:  "pass.art4." + passType + ".Card",
+		PassTypeIdentifier:  passTypeId,
 		AuthenticationToken: "The authenticationToken needs to be at least 16 characters long",
 		WebServiceURL:       "https://url",
 		OrganizationName:    "Art4",
-		SerialNumber:        "serial number",
+		SerialNumber:        "QQQQWWWWEEEERRRR",
 		Description:         "Art4 Event Ticket",
 		EventTicket:         passJson,
 		Barcodes: []passkit.Barcode{
 			{
 				Format:          passkit.BarcodeFormatQR,
-				Message:         "https://www.art4.ru/show/v-pyli-etoy-planety/",
+				Message:         "QQQQWWWWEEEERRRR" + "@" + passType,
 				MessageEncoding: "iso-8859-1",
 			},
 		},

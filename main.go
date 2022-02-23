@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 	"time"
-	"wallet_server/authentication"
+	auth "wallet_server/authentication"
 	"wallet_server/dbconn"
 	"wallet_server/endpoints"
 	"wallet_server/jwt"
@@ -26,7 +26,7 @@ func router4Wallet(endpointsENV *endpoints.Env) http.Handler {
 
 	// group that requires authentication
 	wallet := router.Group("/")
-	wallet.Use(authentication.VerifyAuthHeader())
+	wallet.Use(auth.VerifyWalletAuthHeader())
 	{
 		wallet.POST(registerURL, endpointsENV.POSTregister)     // register device for update notifications
 		wallet.DELETE(registerURL, endpointsENV.DELETEregister) // delete device from update notifications
@@ -59,8 +59,30 @@ func router4Website(endpointsENV *endpoints.Env) http.Handler {
 		website.GET(commitURL, endpoints.GETcommit)
 		website.POST(commitURL, endpointsENV.POSTcommit)
 		website.GET(generatableURL, endpoints.GETgeneratable)
-		website.GET(generateURL, endpointsENV.GETgenerate)
+		website.GET(generateURL, endpointsENV.GETnewpass_from_webmanager)
 		website.GET(statsURL, endpoints.GETstats)
+	}
+
+	return router
+}
+
+func router4SideAPIs(endpointsENV *endpoints.Env) http.Handler {
+	router := gin.New()
+	router.Use(gin.Recovery())
+	router.Use(gin.Logger())
+
+	// group for scanner. requires authentication
+	scanner := router.Group("/scan")
+	scanner.Use(auth.VerifyScannerAuthHeader())
+	{
+		scanner.POST(scanURL, endpointsENV.POSTscan)
+	}
+
+	// group for payment system. requires authentication
+	paymentSystem := router.Group("/passes")
+	paymentSystem.Use(auth.VerifyPaymentSystemAuthHeader())
+	{
+		paymentSystem.GET(requestpassURL, endpointsENV.GETnewpass_from_api_call)
 	}
 
 	return router
@@ -74,20 +96,29 @@ func main() {
 		DB: db,
 	}
 
+	// servers for different apis
 	server4Wallet := &http.Server{
 		Addr:         ":8000",
 		Handler:      router4Wallet(endpointsENV),
-		ReadTimeout:  5 * time.Second,
+		ReadTimeout:  6 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
 
 	server4Website := &http.Server{
 		Addr:         ":8080",
 		Handler:      router4Website(endpointsENV),
-		ReadTimeout:  5 * time.Second,
+		ReadTimeout:  4 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
 
+	server4SideAPIs := &http.Server{
+		Addr:         ":8001",
+		Handler:      router4SideAPIs(endpointsENV),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+	}
+
+	// run servers in error group
 	g.Go(func() error {
 		err := server4Wallet.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
@@ -98,6 +129,14 @@ func main() {
 
 	g.Go(func() error {
 		err := server4Website.ListenAndServe()
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+		return err
+	})
+
+	g.Go(func() error {
+		err := server4SideAPIs.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
 			log.Fatal(err)
 		}

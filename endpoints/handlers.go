@@ -13,7 +13,8 @@ import (
 	"wallet_server/classes"
 	"wallet_server/dbconn"
 	"wallet_server/jwt"
-	"wallet_server/pass_generator"
+	gen "wallet_server/pass_generator"
+	vars "wallet_server/pass_vars"
 	"wallet_server/passkit"
 	"wallet_server/sanitizer"
 
@@ -25,24 +26,19 @@ type Env struct {
 	DB *dbconn.MYSQLConn // pointer to mysql connection
 }
 
-const JWT_TTL int = 2700 // 2700 seconds = 45 min
+const (
+	JWT_TTL int = 2700 // 2700 seconds = 45 min
+)
 
-// pass names for POSTupdate handler
-var Passnames []string = []string{
-	"collectors.pkpass",
-	"common.pkpass",
-	"yearly.pkpass",
-}
-
-var Categories []string = []string{
-	"collectors",
-	"common",
-	"yearly",
-}
+var (
+	WEBSITE_SERV_ADDR = os.Getenv("WEBSITE_SERV_ADDR")
+)
 
 /*
 \
-Next come endpoints handlers for WALLET server ->
+ \
+  \
+   Next come endpoint handlers together with some helper functions for WALLET server ->
   /
 */
 
@@ -64,14 +60,13 @@ func (e *Env) POSTregister(c *gin.Context) { // new device<->token registration
 		return
 	}
 	// check if pass is already in database
+	// all passes should be in database before regestering
+	// only GeneratePass() function is able to crate legitamate passes
+	// it adds every pass it generates to database
 	row = e.DB.DB.QueryRow(`SELECT EXISTS(SELECT * FROM Pass WHERE serialNumber = ? AND passTypeIdentifier = ?)`, serialNum, passTypeId)
 	if row.Scan(&exists); exists == 0 {
-		// if pass not in database, add it
-		_, err := e.DB.DB.Exec("INSERT INTO Pass (serialNumber, passTypeIdentifier) VALUES (?, ?)", serialNum, passTypeId)
-		if err != nil {
-			c.AbortWithStatus(http.StatusInternalServerError) // log.Fatalf("error inserting Device information: %v", err.Error())
-			return
-		}
+		c.AbortWithStatus(http.StatusConflict)
+		return
 	}
 
 	// check if device is already registered
@@ -115,7 +110,7 @@ func (e *Env) DELETEregister(c *gin.Context) {
 	serialNum := c.Param("serialNumber")
 	err1, err2, err3 := sanitizer.TestRegisterInput(devLibId, passTypeId, serialNum)
 	if err1 != nil || err2 != nil || err3 != nil {
-		c.AbortWithStatus(http.StatusBadRequest) // log.Fatalf("error in unregister input: devLibId=%v, passTypeId=%v, serialNum=%v", err1, err2, err3)
+		c.Abort() // log.Fatalf("error in unregister input: devLibId=%v, passTypeId=%v, serialNum=%v", err1, err2, err3)
 		return
 	}
 
@@ -123,7 +118,7 @@ func (e *Env) DELETEregister(c *gin.Context) {
 	// check that the device is registered for that pass
 	row := e.DB.DB.QueryRow(`SELECT EXISTS(SELECT * from Registration WHERE (Device_devLibId, Pass_passTypeId, Pass_serialNum) = (?, ?, ?))`, devLibId, passTypeId, serialNum)
 	if row.Scan(&exists); exists == 0 {
-		c.AbortWithStatus(http.StatusBadRequest) // log.Fatal("error trying to unregister device: it isn't registered")
+		c.Abort() // log.Fatal("error trying to unregister device: it isn't registered")
 		return
 	}
 	// delete regestration
@@ -188,10 +183,7 @@ func (e *Env) GETupdatablepass(c *gin.Context) {
 		}
 
 		if len(updatableSerialNums) == 0 {
-			c.JSON(http.StatusOK, gin.H{
-				"serialNumbers": "[]",
-				"lastUpdated":   strconv.Itoa(actualLastUpdatedUnix),
-			})
+			c.Data(http.StatusOK, "application/json", []byte(`{"serialNumbers":[],"lastUpdated":"`+strconv.Itoa(providedLastUpdatedUnix)+`"}`))
 			return
 		}
 		byteArr, err := json.Marshal(updatableSerialNums)
@@ -203,10 +195,7 @@ func (e *Env) GETupdatablepass(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"serialNumbers": "[]",
-		"lastUpdated":   strconv.Itoa(providedLastUpdatedUnix),
-	})
+	c.Data(http.StatusOK, "application/json", []byte(`{"serialNumbers":[],"lastUpdated":"`+strconv.Itoa(providedLastUpdatedUnix)+`"}`))
 }
 
 func (e *Env) GETupdatedpass(c *gin.Context) {
@@ -228,8 +217,9 @@ func (e *Env) GETupdatedpass(c *gin.Context) {
 
 	// get pass info
 	var eventName, startTime, endTime string
-	row = e.DB.DB.QueryRow("SELECT eventName, startTimeVal, endTimeVal FROM PassInfo WHERE passTypeId = ?", passTypeId)
-	if row.Scan(&eventName, &startTime, &endTime) != nil {
+	var lastUpdateTag int
+	row = e.DB.DB.QueryRow("SELECT eventName, startTimeVal, endTimeVal, lastUpdateTag FROM PassInfo WHERE passTypeId = ?", passTypeId)
+	if row.Scan(&eventName, &startTime, &endTime, &lastUpdateTag) != nil {
 		c.AbortWithStatus(http.StatusInternalServerError) // log.Fatalf("error couldn't scan PassInfo; passTypeId = %v", passTypeId)
 		return
 	}
@@ -240,17 +230,18 @@ func (e *Env) GETupdatedpass(c *gin.Context) {
 	)
 	switch passTypeId {
 	case "pass.art4.common.Card":
-		passBytes, err = pass_generator.GenerateEventTicket(serialNum, eventName, startTime, endTime, "common")
+		passBytes, err = gen.GenerateEventTicket(serialNum, eventName, startTime, endTime, "common")
 	case "pass.art4.yearly.Card":
-		passBytes, err = pass_generator.GenerateYearlyCard(serialNum, eventName, startTime, endTime, "yearly")
+		passBytes, err = gen.GenerateYearlyCard(serialNum, eventName, startTime, endTime, "yearly")
 	case "pass.art4.collectors.Card":
-		passBytes, err = pass_generator.GenerateCollectorsCard(serialNum, eventName, startTime, endTime, "collectors")
+		passBytes, err = gen.GenerateCollectorsCard(serialNum, eventName, startTime, endTime, "collectors")
 	}
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
+	c.Header("last-modified", strconv.Itoa(lastUpdateTag))
 	c.Data(http.StatusOK, "application/vnd.apple.pkpass", passBytes)
 }
 
@@ -351,7 +342,9 @@ func (e *Env) PUSHrequest(passType string) error {
 
 /*
 \
-Next come endpoints handlers for WEBSITE server ->
+ \
+  \
+   Next come endpoint handlers together with some helper functions for WEBSITE server ->
   /
 */
 
@@ -393,7 +386,7 @@ func (e *Env) POSTlogin(c *gin.Context) {
 	}
 
 	// finaly, give user a cookie
-	c.SetCookie("JWTAuth", token, JWT_TTL, "/", "5238-195-91-208-19.ngrok.io", false, true)
+	c.SetCookie("JWTAuth", token, JWT_TTL, "/", WEBSITE_SERV_ADDR[8:len(WEBSITE_SERV_ADDR)-1], false, true)
 	c.Redirect(http.StatusFound, "/passes")
 }
 
@@ -437,7 +430,7 @@ func GETupdate(c *gin.Context) {
 func GETupdatepass(c *gin.Context) {
 	passType := c.Param("passType")
 	typeValid := false
-	for _, category := range Categories {
+	for _, category := range vars.Categories {
 		if passType == category {
 			typeValid = true
 			break
@@ -468,7 +461,7 @@ func POSTupdatepass(c *gin.Context) {
 
 	passType := form.Value["passType"][0]
 	typeValid := false
-	for _, category := range Categories {
+	for _, category := range vars.Categories {
 		if passType == category {
 			typeValid = true
 			break
@@ -505,11 +498,11 @@ func POSTupdatepass(c *gin.Context) {
 	// generate pass json file and generate pass
 	switch passType {
 	case "common":
-		err = pass_generator.GenerateEventTicketForCommit(eventName, startTime, endTime, passType)
+		err = gen.GenerateEventTicketForCommit(eventName, startTime, endTime, passType)
 	case "collectors":
-		err = pass_generator.GenerateYearlyCardForCommit(eventName, startTime, endTime, passType)
+		err = gen.GenerateYearlyCardForCommit(eventName, startTime, endTime, passType)
 	case "yearly":
-		err = pass_generator.GenerateCollectorsCardForCommit(eventName, startTime, endTime, passType)
+		err = gen.GenerateCollectorsCardForCommit(eventName, startTime, endTime, passType)
 	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -580,7 +573,7 @@ func (e *Env) POSTcommit(c *gin.Context) {
 
 	// make sure pass name is legit
 	passNameLegit := false
-	for _, _passName := range Passnames {
+	for _, _passName := range vars.Passnames {
 		if _passName == passName {
 			passNameLegit = true
 		}
@@ -669,47 +662,57 @@ func GETgeneratable(c *gin.Context) {
 	})
 }
 
+// function to generate a pass
+func (e *Env) GeneratePass(passTypeId string) ([]byte, error) {
+	var (
+		passBytes []byte
+		err       error
+	)
+	// get pass info from database
+	row := e.DB.DB.QueryRow("SELECT eventName, startTimeVal, endTimeVal FROM PassInfo WHERE passTypeId = ?", passTypeId)
+	var eventName, startTime, endTime string
+	if err = row.Scan(&eventName, &startTime, &endTime); err != nil {
+		return nil, err
+	}
+
+	serialNum := xid.New().String() // unique id for new pass
+	switch passTypeId {
+	case "pass.art4.common.Card":
+		passBytes, err = gen.GenerateEventTicket(serialNum, eventName, startTime, endTime, "common")
+	case "pass.art4.yearly.Card":
+		passBytes, err = gen.GenerateYearlyCard(serialNum, eventName, startTime, endTime, "yearly")
+	case "pass.art4.collectors.Card":
+		passBytes, err = gen.GenerateCollectorsCard(serialNum, eventName, startTime, endTime, "collectors")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// insert newly created pass id into database
+	_, err = e.DB.DB.Exec("INSERT INTO Pass (serialNumber, passTypeIdentifier) VALUES (?, ?)", serialNum, passTypeId)
+	if err != nil {
+		return nil, err
+	}
+
+	return passBytes, nil
+}
+
 // generate pass
-func (e *Env) GETgenerate(c *gin.Context) {
+func (e *Env) GETnewpass_from_webmanager(c *gin.Context) {
 	// check pass type is valid
 	passName := c.Param("passType")
-	passNameLegit := false
-	for _, _passName := range Passnames {
-		if _passName == passName {
-			passNameLegit = true
-		}
-	}
-	if !passNameLegit {
+	passType := passName[:len(passName)-7]
+	passTypeId := "pass.art4." + passType + ".Card"
+	err := sanitizer.TestPassTypeId(passTypeId)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error:": "passname not legit",
 		})
 		return
 	}
 
-	// get pass info from database
-	passTypeId := "pass.art4." + passName[:len(passName)-7] + ".Card"
-	row := e.DB.DB.QueryRow("SELECT eventName, startTimeVal, endTimeVal FROM PassInfo WHERE passTypeId = ?", passTypeId)
-	var eventName, startTime, endTime string
-	if err := row.Scan(&eventName, &startTime, &endTime); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error selecting info for new pass": err.Error(),
-		})
-		return
-	}
-
-	serialNum := xid.New().String() // unique id for new pass
-	var (
-		passBytes []byte
-		err       error
-	)
-	switch passTypeId {
-	case "pass.art4.common.Card":
-		passBytes, err = pass_generator.GenerateEventTicket(serialNum, eventName, startTime, endTime, "common")
-	case "pass.art4.yearly.Card":
-		passBytes, err = pass_generator.GenerateYearlyCard(serialNum, eventName, startTime, endTime, "yearly")
-	case "pass.art4.collectors.Card":
-		passBytes, err = pass_generator.GenerateCollectorsCard(serialNum, eventName, startTime, endTime, "collectors")
-	}
+	// generate new pass
+	passBytes, err := e.GeneratePass(passTypeId)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error generating pass:": err.Error(),
@@ -727,3 +730,113 @@ func GETstats(c *gin.Context) {
 func GETnotfound(c *gin.Context) {
 	c.HTML(http.StatusNotFound, "notfound.html", gin.H{})
 }
+
+/*
+\
+ \
+  \
+   Next come endpoint handlers for SIDE APIs server ->
+  /
+*/
+
+// SCANNER
+// ------------------------------------------------
+
+func (e *Env) POSTscan(c *gin.Context) {
+	passType := c.Param("passType")
+	serialNum := c.Param("serialNumber")
+	passTypeId := "pass.art4." + passType + ".Card"
+	err1, err2 := sanitizer.TestPassTypeId(passTypeId), sanitizer.TestSerialNum(serialNum)
+	if err1 != nil || err2 != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	var exists int
+	// validate that pass is reqistered
+	row := e.DB.DB.QueryRow("SELECT EXISTS (SELECT * FROM Registration WHERE (Pass_passTypeId, Pass_serialNum) = (?, ?))", passTypeId, serialNum)
+	if row.Scan(&exists); exists == 0 {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	// usage:
+	// 0 : green (can enter)
+	// 1 : yellow (check id)
+	// 2 : red (can't enter)
+	usage := 0
+	// userName for yearly and collectors
+	userName := "-"
+
+	switch passType {
+	case "common":
+		var used int
+		row = e.DB.DB.QueryRow("SELECT used FROM Pass WHERE (serialNumber, passTypeIdentifier) = (?, ?)", serialNum, passTypeId)
+		row.Scan(&used)
+		switch used {
+		case 0:
+			_, err := e.DB.DB.Exec("UPDATE Pass SET used = 1 WHERE (serialNumber, passTypeIdentifier) = (?, ?)", serialNum, passTypeId)
+			if err != nil {
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+		case 1:
+			usage = 2
+		}
+	case "yearly":
+		var usedThisWeek, usedThisMonth int
+		row = e.DB.DB.QueryRow("SELECT usedThisWeek, usedThisMonth, userName FROM Pass WHERE (serialNumber, passTypeIdentifier) = (?, ?)", serialNum, passTypeId)
+		row.Scan(&usedThisWeek, &usedThisMonth, &userName)
+		if usedThisWeek >= 1 || usedThisMonth >= 2 {
+			usage = 1
+		} else {
+			_, err := e.DB.DB.Exec("UPDATE Pass SET usedThisWeek = usedThisWeek+1, usedThisMonth = usedThisMonth+1 WHERE (serialNumber, passTypeIdentifier) = (?, ?)", serialNum, passTypeId)
+			if err != nil {
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+		}
+	case "collectors":
+		var usedThisWeek, usedThisMonth int
+		row = e.DB.DB.QueryRow("SELECT usedThisWeek, usedThisMonth, userName FROM Pass WHERE (serialNumber, passTypeIdentifier) = (?, ?)", serialNum, passTypeId)
+		row.Scan(&usedThisWeek, &usedThisMonth, &userName)
+		if usedThisWeek >= 1 || usedThisMonth >= 2 {
+			usage = 1
+		} else {
+			_, err := e.DB.DB.Exec("UPDATE Pass SET usedThisWeek = usedThisWeek+1, usedThisMonth = usedThisMonth+1 WHERE (serialNumber, passTypeIdentifier) = (?, ?)", serialNum, passTypeId)
+			if err != nil {
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"userName":    userName,
+		"usageStatus": usage,
+		"time":        time.Now().UnixMilli(), // Moscow time
+	})
+}
+
+// ------------------------------------------------
+
+// PAYMENT SYSTEM
+// ------------------------------------------------
+
+func (e *Env) GETnewpass_from_api_call(c *gin.Context) {
+	passType := c.Param("passType")
+	passTypeId := "pass.art4." + passType + ".Card"
+	err := sanitizer.TestPassTypeId(passTypeId)
+	if err != nil {
+		c.AbortWithStatus(http.StatusNotFound)
+	}
+
+	passBytes, err := e.GeneratePass(passTypeId)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+
+	c.Data(http.StatusOK, "application/zip", passBytes)
+}
+
+// ------------------------------------------------
