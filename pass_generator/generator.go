@@ -170,7 +170,7 @@ func GenerateEventTicketForCommit(eventName, startTime, endTime, passType string
 	return nil
 }
 
-func GenerateYearlyCard(serialNum, eventName, startTime, endTime, passType string) ([]byte, error) {
+func GenerateYearlyCard(serialNum, eventName, startTime, endTime, userName, passType string) ([]byte, error) {
 	passJson := passkit.NewEventTicket()
 	// ticket fields
 	primaryField := passkit.Field{
@@ -189,16 +189,22 @@ func GenerateYearlyCard(serialNum, eventName, startTime, endTime, passType strin
 		Label: "END:",
 		Value: endTime,
 	}
-	auxiliaryField := passkit.Field{
+	auxiliaryField1 := passkit.Field{
 		Key:   "clitype",
 		Label: "STATUS:",
 		Value: passType,
+	}
+	auxiliaryField2 := passkit.Field{
+		Key:   "username",
+		Label: "USERNAME:",
+		Value: userName,
 	}
 
 	passJson.AddPrimaryFields(primaryField)
 	passJson.AddSecondaryFields(secondaryField1)
 	passJson.AddSecondaryFields(secondaryField2)
-	passJson.AddAuxiliaryFields(auxiliaryField)
+	passJson.AddAuxiliaryFields(auxiliaryField1)
+	passJson.AddAuxiliaryFields(auxiliaryField2)
 
 	// pass.json contents
 	passTypeId := "pass.art4." + passType + ".Card"
@@ -330,7 +336,7 @@ func GenerateYearlyCardForCommit(eventName, startTime, endTime, passType string)
 	return nil
 }
 
-func GenerateCollectorsCard(serialNum, eventName, startTime, endTime, passType string) ([]byte, error) {
+func GenerateCollectorsCard(serialNum, eventName, startTime, endTime, userName, passType string) ([]byte, error) {
 	passJson := passkit.NewEventTicket()
 	// ticket fields
 	primaryField := passkit.Field{
@@ -349,16 +355,22 @@ func GenerateCollectorsCard(serialNum, eventName, startTime, endTime, passType s
 		Label: "END:",
 		Value: endTime,
 	}
-	auxiliaryField := passkit.Field{
+	auxiliaryField1 := passkit.Field{
 		Key:   "clitype",
 		Label: "STATUS:",
 		Value: passType,
+	}
+	auxiliaryField2 := passkit.Field{
+		Key:   "username",
+		Label: "USERNAME:",
+		Value: userName,
 	}
 
 	passJson.AddPrimaryFields(primaryField)
 	passJson.AddSecondaryFields(secondaryField1)
 	passJson.AddSecondaryFields(secondaryField2)
-	passJson.AddAuxiliaryFields(auxiliaryField)
+	passJson.AddAuxiliaryFields(auxiliaryField1)
+	passJson.AddAuxiliaryFields(auxiliaryField2)
 
 	// pass.json contents
 	passTypeId := "pass.art4." + passType + ".Card"
@@ -509,16 +521,22 @@ func GenerateJsonPassTemplate(eventName, startTime, endTime, passType string) (*
 		Label: "END:",
 		Value: endTime,
 	}
-	auxiliaryField := passkit.Field{
+	auxiliaryField1 := passkit.Field{
 		Key:   "clitype",
 		Label: "STATUS:",
 		Value: passType,
+	}
+	auxiliaryField2 := passkit.Field{
+		Key:   "username",
+		Label: "USERNAME:",
+		Value: "John Doe Jr.",
 	}
 
 	passJson.AddPrimaryFields(primaryField)
 	passJson.AddSecondaryFields(secondaryField1)
 	passJson.AddSecondaryFields(secondaryField2)
-	passJson.AddAuxiliaryFields(auxiliaryField)
+	passJson.AddAuxiliaryFields(auxiliaryField1)
+	passJson.AddAuxiliaryFields(auxiliaryField2)
 
 	// pass.json contents
 	passTypeId := "pass.art4." + passType + ".Card"

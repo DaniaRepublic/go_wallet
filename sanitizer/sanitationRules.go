@@ -8,6 +8,7 @@ import (
 
 var (
 	AlphaNumRe = regexp.MustCompile("^[a-zA-Z0-9]*$")
+	AlphaRe    = regexp.MustCompile("^[a-zA-Z ]*$")
 )
 
 func TestDevLibId(devLibId string) error {
@@ -55,4 +56,11 @@ func TestPushToken(pushTkn string) error {
 		return nil
 	}
 	return fmt.Errorf("error: push token not alphanumeric")
+}
+
+func TestUserName(userName string) error {
+	if AlphaRe.MatchString(userName) {
+		return nil
+	}
+	return fmt.Errorf("error: user name not alphabetical")
 }

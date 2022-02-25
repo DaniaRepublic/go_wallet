@@ -10,7 +10,11 @@
   <div class="passes">
     <h2>Click on pass to generate:</h2>
     {{ range .passes }}
-    <a href="/generate/{{ . }}" download="{{ . }}">{{ . }}</a>
+      {{ if eq . "common.pkpass" }}
+        <a href="/generate/{{ . }}" download="{{ . }}">{{ . }}</a>
+      {{ else }}
+        <a href="/generateWithInfo/{{ . }}">{{ . }}</a>
+      {{ end }}
     {{ end }}
   </div>
   </div>

@@ -59,6 +59,8 @@ func router4Website(endpointsENV *endpoints.Env) http.Handler {
 		website.GET(commitURL, endpoints.GETcommit)
 		website.POST(commitURL, endpointsENV.POSTcommit)
 		website.GET(generatableURL, endpoints.GETgeneratable)
+		website.GET(generateWithInfoURL, endpoints.GETgenerateWithInfo)
+		website.POST(generateWithInfoURL, endpointsENV.POSTgenerateWithInfo)
 		website.GET(generateURL, endpointsENV.GETnewpass_from_webmanager)
 		website.GET(statsURL, endpoints.GETstats)
 	}

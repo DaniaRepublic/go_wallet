@@ -9,14 +9,15 @@ var (
 
 // Website uris
 var (
-	loginURL       = "/login"
-	passesURL      = "/passes"
-	updateURL      = "/update"
-	updatepassURL  = "/update/:passType"
-	commitURL      = "/commit"
-	generatableURL = "/generate"
-	generateURL    = "/generate/:passType"
-	statsURL       = "/stats"
+	loginURL            = "/login"
+	passesURL           = "/passes"
+	updateURL           = "/update"
+	updatepassURL       = "/update/:passType"
+	commitURL           = "/commit"
+	generatableURL      = "/generate"
+	generateWithInfoURL = "/generateWithInfo/:pass"
+	generateURL         = "/generate/:passType"
+	statsURL            = "/stats"
 )
 
 // Scanner uris

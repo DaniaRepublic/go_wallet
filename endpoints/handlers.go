@@ -227,14 +227,23 @@ func (e *Env) GETupdatedpass(c *gin.Context) {
 	var (
 		passBytes []byte
 		err       error
+		userName  string
 	)
 	switch passTypeId {
 	case "pass.art4.common.Card":
 		passBytes, err = gen.GenerateEventTicket(serialNum, eventName, startTime, endTime, "common")
 	case "pass.art4.yearly.Card":
-		passBytes, err = gen.GenerateYearlyCard(serialNum, eventName, startTime, endTime, "yearly")
+		row = e.DB.DB.QueryRow("SELECT userName FROM Pass WHERE (passTypeIdentifier, serialNumber) = (?, ?)", passTypeId, serialNum)
+		if err = row.Scan(&userName); err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+		}
+		passBytes, err = gen.GenerateYearlyCard(serialNum, eventName, startTime, endTime, userName, "yearly")
 	case "pass.art4.collectors.Card":
-		passBytes, err = gen.GenerateCollectorsCard(serialNum, eventName, startTime, endTime, "collectors")
+		row = e.DB.DB.QueryRow("SELECT userName FROM Pass WHERE (passTypeIdentifier, serialNumber) = (?, ?)", passTypeId, serialNum)
+		if err = row.Scan(&userName); err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+		}
+		passBytes, err = gen.GenerateCollectorsCard(serialNum, eventName, startTime, endTime, userName, "collectors")
 	}
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -580,7 +589,7 @@ func (e *Env) POSTcommit(c *gin.Context) {
 	}
 	if !passNameLegit {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error passname not legit:": err.Error(),
+			"error passname not legit:": "",
 		})
 		return
 	}
@@ -662,8 +671,71 @@ func GETgeneratable(c *gin.Context) {
 	})
 }
 
+func GETgenerateWithInfo(c *gin.Context) {
+	passName := c.Param("pass")
+	// make sure pass name is legit
+	passNameLegit := false
+	for _, _passName := range vars.Passnames {
+		if _passName == passName {
+			passNameLegit = true
+		}
+	}
+	if !passNameLegit {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error passname not legit:": "",
+		})
+		return
+	}
+
+	passType := passName[:len(passName)-7]
+	c.HTML(http.StatusOK, "generatableInfo.html", gin.H{
+		"passType": passType,
+	})
+}
+
+func (e *Env) POSTgenerateWithInfo(c *gin.Context) {
+	// check pass type is valid
+	passName := c.Param("pass")
+	passType := passName[:len(passName)-7]
+	passTypeId := "pass.art4." + passType + ".Card"
+	err := sanitizer.TestPassTypeId(passTypeId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error:": "passname not legit",
+		})
+		return
+	}
+
+	form, err := c.MultipartForm()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error getting commit form:": err.Error(),
+		})
+		return
+	}
+
+	userName := form.Value["userName"][0]
+	err = sanitizer.TestUserName(userName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error in username:": err.Error(),
+		})
+	}
+
+	// generate new pass
+	passBytes, err := e.GeneratePass(passTypeId, userName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error generating pass:": err.Error(),
+		})
+		return
+	}
+
+	c.Data(http.StatusOK, "application/zip", passBytes)
+}
+
 // function to generate a pass
-func (e *Env) GeneratePass(passTypeId string) ([]byte, error) {
+func (e *Env) GeneratePass(passTypeId, userName string) ([]byte, error) {
 	var (
 		passBytes []byte
 		err       error
@@ -680,16 +752,24 @@ func (e *Env) GeneratePass(passTypeId string) ([]byte, error) {
 	case "pass.art4.common.Card":
 		passBytes, err = gen.GenerateEventTicket(serialNum, eventName, startTime, endTime, "common")
 	case "pass.art4.yearly.Card":
-		passBytes, err = gen.GenerateYearlyCard(serialNum, eventName, startTime, endTime, "yearly")
+		if userName != "" {
+			passBytes, err = gen.GenerateYearlyCard(serialNum, eventName, startTime, endTime, userName, "yearly")
+			break
+		}
+		err = fmt.Errorf("error: no userName")
 	case "pass.art4.collectors.Card":
-		passBytes, err = gen.GenerateCollectorsCard(serialNum, eventName, startTime, endTime, "collectors")
+		if userName != "" {
+			passBytes, err = gen.GenerateCollectorsCard(serialNum, eventName, startTime, endTime, userName, "collectors")
+			break
+		}
+		err = fmt.Errorf("error: no userName")
 	}
 	if err != nil {
 		return nil, err
 	}
 
 	// insert newly created pass id into database
-	_, err = e.DB.DB.Exec("INSERT INTO Pass (serialNumber, passTypeIdentifier) VALUES (?, ?)", serialNum, passTypeId)
+	_, err = e.DB.DB.Exec("INSERT INTO Pass (serialNumber, passTypeIdentifier, userName) VALUES (?, ?, ?)", serialNum, passTypeId, userName)
 	if err != nil {
 		return nil, err
 	}
@@ -712,7 +792,7 @@ func (e *Env) GETnewpass_from_webmanager(c *gin.Context) {
 	}
 
 	// generate new pass
-	passBytes, err := e.GeneratePass(passTypeId)
+	passBytes, err := e.GeneratePass(passTypeId, "")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error generating pass:": err.Error(),
@@ -831,7 +911,7 @@ func (e *Env) GETnewpass_from_api_call(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotFound)
 	}
 
-	passBytes, err := e.GeneratePass(passTypeId)
+	passBytes, err := e.GeneratePass(passTypeId, "")
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}

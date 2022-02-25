@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="/static/css/home.css">
+  <title>Generate Passes</title>
+</head>
+<body>
+    <div class="container">
+        {{ template "templates/menu.html" . }}
+        <div class="passes generate">
+            <h2>Generate {{ .passType }} pass</h2>
+            <form method="post" enctype="multipart/form-data">
+            <div class="generatepass">
+                <label for="userName">Username:</label><br>
+                <input type="text" id="userName" name="userName"/><br>
+                <input type="hidden" name="passType" value="{{ .passType }}"/>
+            </div>
+            <div class="submitButton">
+                <input type="submit" value="SUBMIT"/>
+            </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
