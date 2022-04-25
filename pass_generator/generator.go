@@ -96,7 +96,7 @@ func GenerateEventTicket(serialNum, eventName, startTime, endTime, passType stri
 		return nil, err
 	}
 	// sign pass
-	signInfo, err := passkit.LoadSigningInformationFromFiles(genDir+"/certs/"+passType+".p12", "Dania2100", genDir+"/certs/AppleWWDRCA.cer")
+	signInfo, err := passkit.LoadSigningInformationFromFiles(genDir+"/certs/"+passType+".p12", "pass", genDir+"/certs/AppleWWDRCA.cer")
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +151,7 @@ func GenerateEventTicketForCommit(eventName, startTime, endTime, passType string
 		return err
 	}
 	// sign pass
-	signInfo, err := passkit.LoadSigningInformationFromFiles(genDir+"/certs/"+passType+".p12", "Dania2100", genDir+"/certs/AppleWWDRCA.cer")
+	signInfo, err := passkit.LoadSigningInformationFromFiles(genDir+"/certs/"+passType+".p12", "pass", genDir+"/certs/AppleWWDRCA.cer")
 	if err != nil {
 		return err
 	}
@@ -262,7 +262,7 @@ func GenerateYearlyCard(serialNum, eventName, startTime, endTime, userName, pass
 		return nil, err
 	}
 	// sign pass
-	signInfo, err := passkit.LoadSigningInformationFromFiles(genDir+"/certs/"+passType+".p12", "Dania2100", genDir+"/certs/AppleWWDRCA.cer")
+	signInfo, err := passkit.LoadSigningInformationFromFiles(genDir+"/certs/"+passType+".p12", "pass", genDir+"/certs/AppleWWDRCA.cer")
 	if err != nil {
 		return nil, err
 	}
@@ -317,7 +317,7 @@ func GenerateYearlyCardForCommit(eventName, startTime, endTime, passType string)
 		return err
 	}
 	// sign pass
-	signInfo, err := passkit.LoadSigningInformationFromFiles(genDir+"/certs/"+passType+".p12", "Dania2100", genDir+"/certs/AppleWWDRCA.cer")
+	signInfo, err := passkit.LoadSigningInformationFromFiles(genDir+"/certs/"+passType+".p12", "pass", genDir+"/certs/AppleWWDRCA.cer")
 	if err != nil {
 		return err
 	}
@@ -428,7 +428,7 @@ func GenerateCollectorsCard(serialNum, eventName, startTime, endTime, userName, 
 		return nil, err
 	}
 	// sign pass
-	signInfo, err := passkit.LoadSigningInformationFromFiles(genDir+"/certs/"+passType+".p12", "Dania2100", genDir+"/certs/AppleWWDRCA.cer")
+	signInfo, err := passkit.LoadSigningInformationFromFiles(genDir+"/certs/"+passType+".p12", "pass", genDir+"/certs/AppleWWDRCA.cer")
 	if err != nil {
 		return nil, err
 	}
@@ -483,7 +483,7 @@ func GenerateCollectorsCardForCommit(eventName, startTime, endTime, passType str
 		return err
 	}
 	// sign pass
-	signInfo, err := passkit.LoadSigningInformationFromFiles(genDir+"/certs/"+passType+".p12", "Dania2100", genDir+"/certs/AppleWWDRCA.cer")
+	signInfo, err := passkit.LoadSigningInformationFromFiles(genDir+"/certs/"+passType+".p12", "pass", genDir+"/certs/AppleWWDRCA.cer")
 	if err != nil {
 		return err
 	}
