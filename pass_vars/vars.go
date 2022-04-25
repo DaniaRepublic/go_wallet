@@ -2,20 +2,20 @@ package pass_vars
 
 var (
 	PassTypeIds = []string{
-		"pass.art4.common.Card",
-		"pass.art4.yearly.Card",
-		"pass.art4.collectors.Card",
+		"pass.apple.card1",
+		"pass.apple.card2",
+		"pass.apple.card3",
 	}
 
 	Passnames []string = []string{
-		"collectors.pkpass",
-		"common.pkpass",
-		"yearly.pkpass",
+		"card1.pkpass",
+		"card2.pkpass",
+		"card3.pkpass",
 	}
 
 	Categories []string = []string{
-		"collectors",
-		"common",
-		"yearly",
+		"card1",
+		"card2",
+		"card3",
 	}
 )
